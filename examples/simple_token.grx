@@ -1,0 +1,88 @@
+pragma grishex 1.0;
+
+contract SimpleToken {
+    state {
+        name: string;
+        symbol: string;
+        decimals: uint;
+        total_supply: uint;
+        balances: map<address, uint>;
+        allowances: map<address, map<address, uint>>;
+    }
+    
+    event Transfer(from: address, to: address, value: uint);
+    event Approval(owner: address, spender: address, value: uint);
+    
+    constructor(name: string, symbol: string, decimals: uint, initial_supply: uint) {
+        self.name = name;
+        self.symbol = symbol;
+        self.decimals = decimals;
+        self.total_supply = initial_supply;
+        self.balances[msg.sender] = initial_supply;
+        
+        emit Transfer(address(0), msg.sender, initial_supply);
+    }
+    
+    function getName() view returns string {
+        return self.name;
+    }
+    
+    function getSymbol() view returns string {
+        return self.symbol;
+    }
+    
+    function getDecimals() view returns uint {
+        return self.decimals;
+    }
+    
+    function totalSupply() view returns uint {
+        return self.total_supply;
+    }
+    
+    function balanceOf(account: address) view returns uint {
+        return self.balances[account];
+    }
+    
+    function transfer(to: address, amount: uint) returns bool {
+        require(msg.sender != address(0), "Transfer from the zero address");
+        require(to != address(0), "Transfer to the zero address");
+        require(self.balances[msg.sender] >= amount, "Transfer amount exceeds balance");
+        
+        self.balances[msg.sender] -= amount;
+        self.balances[to] += amount;
+        
+        emit Transfer(msg.sender, to, amount);
+        
+        return true;
+    }
+    
+    function allowance(owner: address, spender: address) view returns uint {
+        return self.allowances[owner][spender];
+    }
+    
+    function approve(spender: address, amount: uint) returns bool {
+        require(msg.sender != address(0), "Approve from the zero address");
+        require(spender != address(0), "Approve to the zero address");
+        
+        self.allowances[msg.sender][spender] = amount;
+        
+        emit Approval(msg.sender, spender, amount);
+        
+        return true;
+    }
+    
+    function transferFrom(from: address, to: address, amount: uint) returns bool {
+        require(from != address(0), "Transfer from the zero address");
+        require(to != address(0), "Transfer to the zero address");
+        require(self.balances[from] >= amount, "Transfer amount exceeds balance");
+        require(self.allowances[from][msg.sender] >= amount, "Transfer amount exceeds allowance");
+        
+        self.balances[from] -= amount;
+        self.balances[to] += amount;
+        self.allowances[from][msg.sender] -= amount;
+        
+        emit Transfer(from, to, amount);
+        
+        return true;
+    }
+} 

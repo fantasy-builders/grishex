@@ -1,0 +1,137 @@
+pragma grishex 1.0;
+
+contract MultisigWallet {
+    state {
+        owners: map<address, bool>;
+        owner_count: uint;
+        required_confirmations: uint;
+        transactions: map<uint, Transaction>;
+        confirmations: map<uint, map<address, bool>>;
+        transaction_count: uint;
+    }
+    
+    struct Transaction {
+        destination: address;
+        value: uint;
+        data: bytes;
+        executed: bool;
+    }
+    
+    event TransactionSubmitted(transaction_id: uint, creator: address);
+    event TransactionConfirmed(transaction_id: uint, owner: address);
+    event TransactionExecuted(transaction_id: uint);
+    
+    constructor(owners: array<address>, required: uint) {
+        require(owners.length > 0, "Owners required");
+        require(required > 0, "Required confirmations must be > 0");
+        require(required <= owners.length, "Required cannot be > owners");
+        
+        for (let i = 0; i < owners.length; i++) {
+            let owner = owners[i];
+            require(owner != address(0), "Invalid owner");
+            require(!self.owners[owner], "Owner not unique");
+            
+            self.owners[owner] = true;
+        }
+        
+        self.owner_count = owners.length;
+        self.required_confirmations = required;
+        self.transaction_count = 0;
+    }
+    
+    function submitTransaction(destination: address, value: uint, data: bytes) returns uint {
+        require(self.owners[msg.sender], "Not an owner");
+        
+        let transaction_id = self.transaction_count;
+        self.transactions[transaction_id] = Transaction(destination, value, data, false);
+        self.transaction_count += 1;
+        
+        self.confirmTransaction(transaction_id);
+        
+        emit TransactionSubmitted(transaction_id, msg.sender);
+        
+        return transaction_id;
+    }
+    
+    function confirmTransaction(transaction_id: uint) {
+        require(self.owners[msg.sender], "Not an owner");
+        require(transaction_id < self.transaction_count, "Invalid transaction");
+        require(!self.confirmations[transaction_id][msg.sender], "Already confirmed");
+        
+        self.confirmations[transaction_id][msg.sender] = true;
+        
+        emit TransactionConfirmed(transaction_id, msg.sender);
+        
+        self._executeTransactionIfConfirmed(transaction_id);
+    }
+    
+    function _executeTransactionIfConfirmed(transaction_id: uint) private {
+        if (self._isConfirmed(transaction_id)) {
+            self._executeTransaction(transaction_id);
+        }
+    }
+    
+    function _executeTransaction(transaction_id: uint) private {
+        require(transaction_id < self.transaction_count, "Invalid transaction");
+        
+        let transaction = self.transactions[transaction_id];
+        require(!transaction.executed, "Already executed");
+        
+        transaction.executed = true;
+        self.transactions[transaction_id] = transaction;
+        
+        // В реальной реализации здесь был бы вызов внешнего контракта
+        
+        emit TransactionExecuted(transaction_id);
+    }
+    
+    function _isConfirmed(transaction_id: uint) private view returns bool {
+        require(transaction_id < self.transaction_count, "Invalid transaction");
+        
+        let count = 0;
+        for (let owner in self.owners) {
+            if (self.confirmations[transaction_id][owner]) {
+                count += 1;
+            }
+            if (count >= self.required_confirmations) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    function getConfirmationCount(transaction_id: uint) view returns uint {
+        require(transaction_id < self.transaction_count, "Invalid transaction");
+        
+        let count = 0;
+        for (let owner in self.owners) {
+            if (self.confirmations[transaction_id][owner]) {
+                count += 1;
+            }
+        }
+        
+        return count;
+    }
+    
+    function getTransactionCount() view returns uint {
+        return self.transaction_count;
+    }
+    
+    function getOwners() view returns array<address> {
+        let result = array<address>();
+        
+        for (let owner in self.owners) {
+            if (self.owners[owner]) {
+                result.push(owner);
+            }
+        }
+        
+        return result;
+    }
+    
+    function getTransaction(transaction_id: uint) view returns Transaction {
+        require(transaction_id < self.transaction_count, "Invalid transaction");
+        return self.transactions[transaction_id];
+    }
+} 

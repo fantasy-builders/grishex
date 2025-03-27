@@ -1,0 +1,104 @@
+pragma grishex 1.0;
+
+contract Voting {
+    state {
+        owner: address;
+        proposals: map<uint, string>;
+        votes: map<uint, uint>;
+        voters: map<address, bool>;
+        proposal_count: uint;
+        voting_active: bool;
+    }
+    
+    event ProposalAdded(proposal_id: uint, description: string);
+    event VoteCast(voter: address, proposal_id: uint);
+    event VotingStarted();
+    event VotingEnded();
+    
+    constructor() {
+        self.owner = msg.sender;
+        self.proposal_count = 0;
+        self.voting_active = false;
+    }
+    
+    function addProposal(proposal: string) {
+        require(msg.sender == self.owner, "Only owner can add proposals");
+        require(!self.voting_active, "Cannot add proposals while voting is active");
+        
+        self.proposals[self.proposal_count] = proposal;
+        self.votes[self.proposal_count] = 0;
+        
+        emit ProposalAdded(self.proposal_count, proposal);
+        
+        self.proposal_count += 1;
+    }
+    
+    function startVoting() {
+        require(msg.sender == self.owner, "Only owner can start voting");
+        require(!self.voting_active, "Voting is already active");
+        require(self.proposal_count > 0, "No proposals to vote on");
+        
+        self.voting_active = true;
+        
+        emit VotingStarted();
+    }
+    
+    function endVoting() {
+        require(msg.sender == self.owner, "Only owner can end voting");
+        require(self.voting_active, "Voting is not active");
+        
+        self.voting_active = false;
+        
+        emit VotingEnded();
+    }
+    
+    function vote(proposal_id: uint) {
+        require(self.voting_active, "Voting is not active");
+        require(proposal_id < self.proposal_count, "Invalid proposal ID");
+        require(!self.voters[msg.sender], "Already voted");
+        
+        self.votes[proposal_id] += 1;
+        self.voters[msg.sender] = true;
+        
+        emit VoteCast(msg.sender, proposal_id);
+    }
+    
+    function getProposal(proposal_id: uint) view returns string {
+        require(proposal_id < self.proposal_count, "Invalid proposal ID");
+        return self.proposals[proposal_id];
+    }
+    
+    function getVotes(proposal_id: uint) view returns uint {
+        require(proposal_id < self.proposal_count, "Invalid proposal ID");
+        return self.votes[proposal_id];
+    }
+    
+    function getProposalCount() view returns uint {
+        return self.proposal_count;
+    }
+    
+    function isVotingActive() view returns bool {
+        return self.voting_active;
+    }
+    
+    function hasVoted(voter: address) view returns bool {
+        return self.voters[voter];
+    }
+    
+    function getWinningProposal() view returns uint {
+        require(self.proposal_count > 0, "No proposals");
+        
+        let winning_proposal_id = 0;
+        let winning_vote_count = self.votes[0];
+        
+        for (let i = 1; i < self.proposal_count; i++) {
+            let vote_count = self.votes[i];
+            if (vote_count > winning_vote_count) {
+                winning_vote_count = vote_count;
+                winning_proposal_id = i;
+            }
+        }
+        
+        return winning_proposal_id;
+    }
+} 
