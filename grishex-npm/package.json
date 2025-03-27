@@ -1,0 +1,55 @@
+{
+  "name": "grishex-cli",
+  "version": "1.0.0",
+  "description": "Grishex Smart Contract Language for Grishinium Blockchain",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "grishex": "bin/grishex.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "prepublishOnly": "npm run build",
+    "start": "node ./dist/cli/index.js"
+  },
+  "keywords": [
+    "blockchain",
+    "smart-contract",
+    "grishinium",
+    "grishex",
+    "language"
+  ],
+  "author": "Grishinium Blockchain Team",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^9.4.0",
+    "chalk": "^4.1.2",
+    "fs-extra": "^10.1.0",
+    "inquirer": "^8.2.4",
+    "ora": "^5.4.1"
+  },
+  "devDependencies": {
+    "typescript": "^4.7.4",
+    "jest": "^28.1.3",
+    "@types/node": "^18.0.6",
+    "@types/fs-extra": "^9.0.13",
+    "@types/inquirer": "^8.2.1",
+    "@types/jest": "^28.1.6",
+    "ts-jest": "^28.0.7"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/grishinium/grishex-language.git"
+  },
+  "bugs": {
+    "url": "https://github.com/grishinium/grishex-language/issues"
+  },
+  "homepage": "https://docs.grishinium.com/grishex"
+}
